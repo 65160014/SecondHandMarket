@@ -1,73 +1,75 @@
 <?php
 include 'db_connect.php';
 
-// ตรวจสอบการส่งข้อมูลจากฟอร์ม
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // รับข้อมูลจากฟอร์ม
-    $ProductName = $_POST['product-name'];
-    $ProductDetail = $_POST['details'];
-    $ProductPrice = $_POST['price'];
-    $ProductQuantity = $_POST['quantity'];
-    $ProductSize = !empty($_POST['size']) ? $_POST['size'] : null;
-    $ProductColor = !empty($_POST['color']) ? $_POST['color'] : null;
-    $ShippingCost = $_POST['shipping-cost'];
-    $SellingProductkeyword = $_POST['keyword'];
-    $Categories = $_POST['categories'];
+  $ProductName = $_POST['product-name'];
+  $ProductDetail = $_POST['details'];
+  $ProductPrice = $_POST['price'];
+  $ProductQuantity = $_POST['quantity'];
+  $ProductSize = !empty($_POST['size']) ? $_POST['size'] : null;
+  $ProductColor = !empty($_POST['color']) ? $_POST['color'] : null;
+  $ShippingCost = $_POST['shipping-cost'];
+  $SellingProductkeyword = $_POST['keyword'];
+  $Categories = $_POST['categories'];
 
-    // ตรวจสอบการอัปโหลดไฟล์
-    if (isset($_FILES['photo']) && $_FILES['photo']['error'] == UPLOAD_ERR_OK) {
-        $image_product = file_get_contents($_FILES['photo']['tmp_name']);
-    } else {
-        die("Error uploading file: " . $_FILES['photo']['error']);
+  // ตรวจสอบการอัปโหลดไฟล์
+  if (isset($_FILES['photo']) && $_FILES['photo']['error'] == UPLOAD_ERR_OK) {
+    $image_product = file_get_contents($_FILES['photo']['tmp_name']);
+  } else {
+    $error_message = "Error uploading file: " . $_FILES['photo']['error'];
+    echo "<script>console.error(" . json_encode($error_message) . ");</script>";
+    die();
+  }
+
+  // เริ่ม Transaction
+  $conn->begin_transaction();
+
+  try {
+    // เพิ่มข้อมูลในตาราง product
+    $sql_product = "INSERT INTO product (ProductName, ProductDetail, ProductPrice, ProductQuantity, ProductSize, Categories, ProductColor, image_product) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+    $stmt_product = $conn->prepare($sql_product);
+    $stmt_product->bind_param("ssiisssb", $ProductName, $ProductDetail, $ProductPrice, $ProductQuantity, $ProductSize, $Categories, $ProductColor, $image_product);
+    $stmt_product->send_long_data(7, $image_product); // ส่งข้อมูล BLOB
+
+    // ตรวจสอบการ execute
+    if (!$stmt_product->execute()) {
+      throw new Exception("Error inserting into product table: " . $stmt_product->error);
     }
 
-    // เริ่ม Transaction
-    $conn->begin_transaction();
+    // ดึง ProductID ที่เพิ่งเพิ่มเข้ามา
+    $ProductID = $conn->insert_id;
 
-    try {
-        // เพิ่มข้อมูลในตาราง product
-        $sql_product = "INSERT INTO product (ProductName, ProductDetail, ProductPrice, ProductQuantity, ProductSize, Categories, ProductColor, image_product) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        $stmt_product = $conn->prepare($sql_product);
-        $stmt_product->bind_param("ssdisssb", $ProductName, $ProductDetail, $ProductPrice, $ProductQuantity, $ProductSize, $Categories, $ProductColor, null);
-        $stmt_product->send_long_data(7, $image_product); // สำหรับ BLOB
-        
-        if (!$stmt_product->execute()) {
-            throw new Exception("Error inserting into product table: " . $stmt_product->error);
-        }
+    // เพิ่มข้อมูลในตาราง sellingproduct
+    $sql_sellingproduct = "INSERT INTO sellingproduct (ProductID, ProductName, SellingProductkeyword, Shippingcost) 
+                            VALUES (?, ?, ?, ?)";
 
-        // ดึง ProductID ที่เพิ่งเพิ่มเข้ามา
-        $ProductID = $conn->insert_id;
+    $stmt_sellingproduct = $conn->prepare($sql_sellingproduct);
+    $stmt_sellingproduct->bind_param("issi", $ProductID, $ProductName, $SellingProductkeyword, $ShippingCost);
 
-        // เพิ่มข้อมูลในตาราง sellingproduct
-        $sql_sellingproduct = "INSERT INTO sellingproduct (ProductID, ProductName, SellingProductkeyword, Shippingcost) 
-                               VALUES (?, ?, ?, ?)";
-        
-        $stmt_sellingproduct = $conn->prepare($sql_sellingproduct);
-        $stmt_sellingproduct->bind_param("issi", $ProductID, $ProductName, $SellingProductkeyword, $ShippingCost);
-        
-        if (!$stmt_sellingproduct->execute()) {
-            throw new Exception("Error inserting into sellingproduct table: " . $stmt_sellingproduct->error);
-        }
-
-        // Commit Transaction
-        $conn->commit();
-        echo "Product and selling details inserted successfully!";
-        
-    } catch (Exception $e) {
-        // Rollback ถ้ามีข้อผิดพลาด
-        $conn->rollback();
-        error_log("Failed to insert records: " . $e->getMessage()); // ล็อกข้อผิดพลาด
-        echo "Failed to insert records: " . $e->getMessage();
+    // ตรวจสอบการ execute สำหรับ sellingproduct
+    if (!$stmt_sellingproduct->execute()) {
+      throw new Exception("Error inserting into sellingproduct table: " . $stmt_sellingproduct->error);
     }
+    
+    // Commit Transaction
+    $conn->commit();
+        
+  } catch (Exception $e) {
+    // Rollback ถ้ามีข้อผิดพลาด
+    $conn->rollback();
+    error_log("Failed to insert records: " . $e->getMessage()); // ล็อกข้อผิดพลาด
+    echo "Failed to insert records: " . $e->getMessage();
+  }
 
-    // ปิดการเชื่อมต่อฐานข้อมูล
-    $stmt_product->close();
-    $stmt_sellingproduct->close();
-    $conn->close();
+  $stmt_product->close();
+  $stmt_sellingproduct->close();
+  $conn->close();
 }
 ?>
+
+
 
 
 
@@ -259,8 +261,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Simulate product submission (replace with actual backend call)
         alert('Product submitted successfully!');
-        window.location.href = 'index.php'; // Redirect to index.php
-        return false; // Prevent form submission
     }
 </script>
 
