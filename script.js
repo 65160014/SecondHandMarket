@@ -327,20 +327,28 @@ document.addEventListener("DOMContentLoaded", function () {
             <p>Product: ${productName}</p>
             <button id="confirm-payment" data-status="Confirmed">Confirm Payment</button>
         `;
-        
+    
         paymentConfirmation.style.display = "block";
-        
+    
         // ใช้ dataset เพื่อส่งค่า paymentStatus
         document.querySelectorAll("button[data-status]").forEach(button => {
             button.addEventListener("click", function() {
                 const status = button.dataset.status;
                 submitPaymentData(status);  // ส่งค่าผ่าน dataset
+    
+                // If payment is confirmed, finalize the order
+                if (status === "Confirmed") {
+                    finalizeOrder(); // Call finalizeOrder after payment confirmation
+                }
             });
         });
     
         document.getElementById("close-payment-confirmation").addEventListener("click", returnToProductDetails);
         document.getElementById("confirm-payment").addEventListener("click", showCompletedTransactionPage);
     }
+    
+
+
     
     
     function returnToProductDetails() {
@@ -414,7 +422,7 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('shipping-status').textContent = 'Waiting for the seller to send the package to shipping.';
         document.getElementById('transport-name').textContent = 'J&T';
 
-        finalizeOrder();
+        // finalizeOrder();
         // Close completed transaction button event
         document.getElementById('close-completed-transaction').addEventListener('click', function () {
             document.getElementById('completed-transaction').style.display = 'none';
@@ -484,6 +492,9 @@ document.addEventListener("DOMContentLoaded", function () {
             resolve(paymentID);
         });
     }
+
+    const shippingStatus = 'waiting'; // หรือค่าที่คุณต้องการ
+    const shippingName = 'J&T'; // หรือค่าที่คุณต้องการ
     
     function finalizeOrder() {
         console.log("finalizeOrder function called"); // Log เพื่อให้แน่ใจว่าฟังก์ชันนี้ถูกเรียกใช้
@@ -520,7 +531,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
     
             // ใส่ข้อมูลลงตาราง orderproduct
-            return insertOrderProduct(orderID, productID);
+            return insertOrderProduct(orderID, productID, shippingStatus, shippingName);
         })
         .then(() => {
             console.log("Order product inserted successfully.");
@@ -576,13 +587,20 @@ function insertOrder(orderID, paymentID, userID, deliveryAddressID) {
     });
 }
 
+
+
 // Function to insert order products into the database
-function insertOrderProduct(orderID, productID) {
+function insertOrderProduct(orderID, productID, shippingStatus, shippingName) {
     const formData = new FormData();
-    formData.append('OrderID', orderID);  // varchar(20)
-    formData.append('ProductID', productID);  // int(11)
-    formData.append('ShippingStatus', 'waiting');  // varchar(45)
-    formData.append('ShippingName', 'JnT');  // varchar(45)
+    formData.append('OrderID', orderID);
+    formData.append('ProductID', productID);
+    formData.append('ShippingStatus', shippingStatus);
+    formData.append('ShippingName', shippingName);
+    
+    console.log("OrderID:", orderID);
+    console.log("ProductID:", productID);
+    console.log("ShippingStatus:", shippingStatus);
+    console.log("ShippingName:", shippingName);
 
     return fetch('insert_orderproduct.php', {
         method: 'POST',
@@ -590,13 +608,15 @@ function insertOrderProduct(orderID, productID) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Response from insert_orderproduct.php:', data);
         if (data.success) {
             console.log('Order product inserted successfully');
         } else {
-            console.error('Failed to insert order product');
+            console.error('Failed to insert order product:', data.error);
         }
         return data;
-    });
+    });    
 }
+
 
 });
