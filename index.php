@@ -135,7 +135,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <img src="img/cat_gaming.jpg" alt="Gaming">
                     <p>Gaming</p>
                 </div>
-                <div class="category" data-category="shoe">
+                <div class="category" data-category="shoes">
                     <img src="img/cat_shoe.jpg" alt="Shoe">
                     <p>Shoe</p>
                 </div>

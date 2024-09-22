@@ -44,17 +44,21 @@ document.addEventListener("DOMContentLoaded", function () {
             displayProductsByCategory(selectedCategory);
         });
     });
+    
 
     function displayProductsByCategory(category) {
-        const filtered = products.filter(product => product.categories === category);
-        displaySearchResults(filtered);
+        const filtered = products.filter(product => product.Categories === category);
 
+        displaySearchResults(filtered);
+        productDetailsContainer.style.display = "block";
+        
         // Show/hide UI elements based on the selected category
         sortByContainer.style.display = "block";
         categoriesContainer.style.display = "none";
         categoriesHeader.style.display = "none";
         carouselContainer.style.display = "none";
     }
+    
 
     function showSuggestions() {
         const inputValue = searchInput.value.trim().toLowerCase();
