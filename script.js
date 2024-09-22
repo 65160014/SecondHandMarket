@@ -46,10 +46,17 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     
 
+    let currentSortCriteria = "relevance"; // Default sort criteria
+
     function displayProductsByCategory(category) {
         const filtered = products.filter(product => product.Categories === category);
-
-        displaySearchResults(filtered);
+        
+        // Update filteredProducts
+        filteredProducts = filtered;
+    
+        // Sort the filtered products based on the current sort criteria
+        sortResults(currentSortCriteria);
+    
         productDetailsContainer.style.display = "block";
         
         // Show/hide UI elements based on the selected category
@@ -58,7 +65,6 @@ document.addEventListener("DOMContentLoaded", function () {
         categoriesHeader.style.display = "none";
         carouselContainer.style.display = "none";
     }
-    
 
     function showSuggestions() {
         const inputValue = searchInput.value.trim().toLowerCase();
@@ -132,34 +138,37 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function sortResults(sortCriteria) {
-        let sortedProducts = [...filteredProducts];
-
-        switch (sortCriteria) {
-            case "relevance":
-                sortedProducts.sort((a, b) => b.relevance - a.relevance);
-                break;
-            case "latest":
-                sortedProducts.sort((a, b) => b.latest - a.latest);
-                break;
-            case "top-sales":
-                sortedProducts.sort((a, b) => b.topSales - a.topSales);
-                break;
-            case "price-low-high":
-                sortedProducts.sort((a, b) => a.ProductPrice - b.ProductPrice);
-                break;
-            case "price-high-low":
-                sortedProducts.sort((a, b) => b.ProductPrice - a.ProductPrice);
-                break;
+        // Update the sortResults function to accept a filtered array
+        function sortResults(sortCriteria) {
+            let sortedProducts = [...filteredProducts];
+        
+            switch (sortCriteria) {
+                case "relevance":
+                    sortedProducts.sort((a, b) => b.relevance - a.relevance);
+                    break;
+                case "latest":
+                    sortedProducts.sort((a, b) => b.latest - a.latest);
+                    break;
+                case "top-sales":
+                    sortedProducts.sort((a, b) => b.topSales - a.topSales);
+                    break;
+                case "price-low-high":
+                    sortedProducts.sort((a, b) => a.ProductPrice - b.ProductPrice);
+                    break;
+                case "price-high-low":
+                    sortedProducts.sort((a, b) => b.ProductPrice - a.ProductPrice);
+                    break;
+            }
+        
+            displaySearchResults(sortedProducts);
         }
 
-        displaySearchResults(sortedProducts);
-    }
-
+    // Update the sort buttons to also update the current sort criteria
     sortButtons.forEach(button => {
         button.addEventListener("click", function (event) {
             const sortCriteria = event.target.getAttribute("data-sort");
-            sortResults(sortCriteria);
+            currentSortCriteria = sortCriteria; // Update the current sort criteria
+            sortResults(currentSortCriteria);
             setActiveSortButton(event.target);
         });
     });
@@ -167,11 +176,12 @@ document.addEventListener("DOMContentLoaded", function () {
     dropdownItems.forEach(item => {
         item.addEventListener("click", function (event) {
             const sortCriteria = event.target.getAttribute("data-sort");
-            sortResults(sortCriteria);
+            currentSortCriteria = sortCriteria; // Update the current sort criteria
+            sortResults(currentSortCriteria);
             setActiveSortButton(event.target.closest(".dropdown"));
         });
     });
-
+    
     function setActiveSortButton(button) {
         sortButtons.forEach(btn => btn.classList.remove("active"));
         dropdownItems.forEach(item => item.classList.remove("active"));
